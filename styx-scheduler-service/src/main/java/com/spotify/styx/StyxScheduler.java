@@ -23,10 +23,9 @@ package com.spotify.styx;
 import static com.spotify.styx.monitoring.MeteredProxy.instrument;
 import static com.spotify.styx.util.Connections.createBigTableConnection;
 import static com.spotify.styx.util.Connections.createDatastore;
-import static com.spotify.styx.util.ParameterUtil.incrementInstant;
-import static com.spotify.styx.util.ParameterUtil.truncateInstant;
 import static com.spotify.styx.util.ReplayEvents.replayActiveStates;
 import static com.spotify.styx.util.ReplayEvents.transitionLogger;
+import static com.spotify.styx.util.TimeUtil.lastInstant;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
@@ -487,9 +486,7 @@ public class StyxScheduler implements AppInit {
         final Partitioning partitioning = workflow.schedule().partitioning();
         if (optWorkflow.isPresent() && !optWorkflow.get().schedule().partitioning()
             .equals(partitioning)) {
-          final Instant nextNaturalTrigger =
-              incrementInstant(truncateInstant(time.get(), partitioning),
-                  partitioning);
+          final Instant nextNaturalTrigger = lastInstant(time.get(), partitioning); // todo +offset
           storage.patchState(workflow.id(),
               WorkflowState.builder()
                   .nextNaturalTrigger(nextNaturalTrigger)

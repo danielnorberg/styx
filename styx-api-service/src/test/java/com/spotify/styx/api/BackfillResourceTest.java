@@ -24,6 +24,8 @@ import static com.spotify.apollo.test.unit.ResponseMatchers.hasStatus;
 import static com.spotify.apollo.test.unit.StatusTypeMatchers.belongsToFamily;
 import static com.spotify.styx.api.JsonMatchers.assertJson;
 import static com.spotify.styx.api.JsonMatchers.assertNoJson;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -59,8 +61,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Optional;
 import okio.ByteString;
 import org.apache.hadoop.hbase.client.Connection;
 import org.junit.After;
@@ -133,22 +133,27 @@ public class BackfillResourceTest extends VersionedApiTest {
 
   @Before
   public void setUp() throws Exception {
-    storage.storeWorkflow(Workflow.create(
-        BACKFILL_1.workflowId().componentId(), URI.create("http://example.com"),
-        DataEndpoint.create(BACKFILL_1.workflowId().endpointId(), Partitioning.HOURS,
-                            Optional.empty(), Optional.empty(), Optional.empty(),
-                            Collections.emptyList())));
-    storage.storeWorkflow(Workflow.create(
-        BACKFILL_2.workflowId().componentId(), URI.create("http://example.com"),
-        DataEndpoint.create(BACKFILL_2.workflowId().endpointId(),
-                            Partitioning.HOURS, Optional.empty(),
-                            Optional.empty(), Optional.empty(),
-                            Collections.emptyList())));
-    storage.storeWorkflow(Workflow.create(
-        BACKFILL_3.workflowId().componentId(), URI.create("http://example.com"),
-        DataEndpoint.create(BACKFILL_3.workflowId().endpointId(), Partitioning.HOURS,
-                            Optional.empty(), Optional.empty(), Optional.empty(),
-                            Collections.emptyList())));
+    storage.storeWorkflow(
+        Workflow.create(
+            BACKFILL_1.workflowId().componentId(), URI.create("http://example.com"),
+            DataEndpoint.create(
+                BACKFILL_1.workflowId().endpointId(),
+                Partitioning.HOURS,
+                empty(), empty(), empty(), empty(), emptyList())));
+    storage.storeWorkflow(
+        Workflow.create(
+            BACKFILL_2.workflowId().componentId(), URI.create("http://example.com"),
+            DataEndpoint.create(
+                BACKFILL_2.workflowId().endpointId(),
+                Partitioning.HOURS,
+                empty(), empty(), empty(), empty(), emptyList())));
+    storage.storeWorkflow(
+        Workflow.create(
+            BACKFILL_3.workflowId().componentId(), URI.create("http://example.com"),
+            DataEndpoint.create(
+                BACKFILL_3.workflowId().endpointId(),
+                Partitioning.HOURS,
+                empty(), empty(), empty(), empty(), emptyList())));
     storage.storeBackfill(BACKFILL_1);
   }
 

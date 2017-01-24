@@ -24,6 +24,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.auto.value.AutoValue;
+import com.spotify.styx.util.TimeUtil;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +45,9 @@ public abstract class DataEndpoint {
   public abstract Partitioning partitioning();
 
   @JsonProperty
+  public abstract Optional<String> offset();
+
+  @JsonProperty
   public abstract Optional<String> dockerImage();
 
   @JsonProperty
@@ -57,13 +63,38 @@ public abstract class DataEndpoint {
   public static DataEndpoint create(
       @JsonProperty("id") String id,
       @JsonProperty("partitioning") Partitioning partitioning,
+      @JsonProperty("offset") Optional<String> offset,
       @JsonProperty("docker_image") Optional<String> dockerImage,
       @JsonProperty("docker_args") Optional<List<String>> dockerArgs,
       @JsonProperty("secret") Optional<Secret> secret,
       @JsonProperty("resources") List<String> resources) {
 
-    return new AutoValue_DataEndpoint(id, partitioning, dockerImage, dockerArgs, secret,
+    return new AutoValue_DataEndpoint(id, partitioning, offset, dockerImage, dockerArgs, secret,
         resources == null ? Collections.emptyList() : resources);
+  }
+
+  public Instant addOffset(Instant next) {
+    final String offset = offset().orElseGet(this::defaultOffset);
+
+    return TimeUtil.addOffset(next.atZone(ZoneOffset.UTC), offset).toInstant();
+  }
+
+  private String defaultOffset() {
+    switch (partitioning().wellKnown()) {
+      case HOURLY:
+        return "PT1H";
+      case DAILY:
+        return "P1D";
+      case WEEKLY:
+        return "P1W";
+      case MONTHLY:
+        return "P1M";
+      case YEARLY:
+        return "P1Y";
+
+      default:
+        return "PT0S";
+    }
   }
 
   @AutoValue

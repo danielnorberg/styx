@@ -146,6 +146,7 @@ public class StateInitializingTriggerTest {
     return DataEndpoint.create(
         "styx.TestEndpoint",
         partitioning,
+        empty(),
         Optional.of("busybox"),
         Optional.of(Lists.newArrayList(args)),
         empty(),

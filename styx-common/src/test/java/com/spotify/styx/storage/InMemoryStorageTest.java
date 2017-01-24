@@ -78,6 +78,6 @@ public class InMemoryStorageTest {
     return Workflow.create(
         workflowId.componentId(),
         URI.create("http://foo"),
-        DataEndpoint.create(workflowId.endpointId(), HOURS, empty(), empty(), empty(), emptyList()));
+        DataEndpoint.create(workflowId.endpointId(), HOURS, empty(), empty(), empty(), empty(), emptyList()));
   }
 }

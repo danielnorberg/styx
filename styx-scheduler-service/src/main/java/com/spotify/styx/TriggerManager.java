@@ -20,9 +20,8 @@
 
 package com.spotify.styx;
 
-import static com.spotify.styx.util.ParameterUtil.decrementInstant;
-import static com.spotify.styx.util.ParameterUtil.incrementInstant;
-import static com.spotify.styx.util.ParameterUtil.truncateInstant;
+import static com.spotify.styx.util.TimeUtil.lastInstant;
+import static com.spotify.styx.util.TimeUtil.nextInstant;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.base.Throwables;
@@ -85,18 +84,19 @@ public class TriggerManager {
     map.entrySet().forEach(entry -> {
       final Workflow workflow = entry.getKey();
       final Partitioning partitioning = workflow.schedule().partitioning();
-      final Instant next = entry.getValue().orElse(truncateInstant(now, partitioning));
 
-      if (next.isAfter(now)) {
+      final Instant next = entry.getValue()
+          .orElseGet( // todo: persist if does not exist
+              () -> lastInstant(lastInstant(now, partitioning), partitioning));
+
+      final Instant nextWithOffset = workflow.schedule().addOffset(next);
+      if (now.isBefore(nextWithOffset)) {
         return;
       }
 
       if (enabled.contains(workflow.id())) {
         try {
-          triggerListener.event(
-              workflow,
-              Trigger.natural(),
-              decrementInstant(next, partitioning));
+          triggerListener.event(workflow, Trigger.natural(), next);
         } catch (AlreadyInitializedException e) {
           LOG.warn("{}", e.getMessage());
         } catch (Throwable e) {
@@ -105,9 +105,11 @@ public class TriggerManager {
         }
       }
 
-      Instant nextNaturalTrigger = incrementInstant(next, partitioning);
+      final Instant nextNaturalTrigger = nextInstant(next, partitioning);
+
       try {
         storage.updateNextNaturalTrigger(workflow.id(), nextNaturalTrigger);
+        // todo: store actual trigger time (nextWithOffset)
       } catch (IOException e) {
         LOG.error(
             "Sent trigger for workflow {}, but didn't succeed storing next scheduled run {}.",

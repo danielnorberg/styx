@@ -20,7 +20,6 @@
 
 package com.spotify.styx.workflow;
 
-import static com.spotify.styx.util.ParameterUtil.decrementInstant;
 import static com.spotify.styx.util.ParameterUtil.incrementInstant;
 import static com.spotify.styx.util.ParameterUtil.rangeOfInstants;
 import static com.spotify.styx.util.ParameterUtil.truncateInstant;
@@ -58,26 +57,6 @@ public class ParameterUtilTest {
     final String dateHour = ParameterUtil.formatDateHour(TIME);
 
     assertThat(dateHour, is("2016-01-19T09"));
-  }
-
-  @Test
-  public void shouldDecrementInstant() throws Exception {
-    final Instant time = Instant.parse("2016-01-19T08:11:22.333Z");
-    final Instant timeMinusDay = Instant.parse("2016-01-18T09:11:22.333Z");
-    final Instant timeMinusWeek = Instant.parse("2016-01-12T09:11:22.333Z");
-    final Instant timeMinusMonth = Instant.parse("2015-12-19T09:11:22.333Z");
-
-    final Instant hour = decrementInstant(TIME, Partitioning.HOURS);
-    assertThat(hour, is(time));
-
-    final Instant day = decrementInstant(TIME, Partitioning.DAYS);
-    assertThat(day, is(timeMinusDay));
-
-    final Instant week = decrementInstant(TIME, Partitioning.WEEKS);
-    assertThat(week, is(timeMinusWeek));
-
-    final Instant months = decrementInstant(TIME, Partitioning.MONTHS);
-    assertThat(months, is(timeMinusMonth));
   }
 
   @Test
