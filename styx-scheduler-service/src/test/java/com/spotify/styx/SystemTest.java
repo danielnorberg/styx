@@ -50,7 +50,6 @@ import com.spotify.styx.testdata.TestData;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Optional;
 import org.junit.Test;
 
 public class SystemTest extends StyxSchedulerServiceFixture {
@@ -85,6 +84,46 @@ public class SystemTest extends StyxSchedulerServiceFixture {
       .nextTrigger(Instant.parse("2015-01-01T00:00:00Z"))
       .partitioning(Partitioning.HOURS)
       .build();
+
+  @Test
+  public void shouldRunCustomWorkflowSchedule() throws Exception {
+    Workflow customWorkflow = Workflow.create(
+        "styx",
+        TestData.WORKFLOW_URI,
+        DataEndpoint.create(
+            "styx.TestEndpoint",
+            Partitioning.parse("15,45 12,15 * * *"),
+            empty(), of("busybox"), of(emptyList()), empty(), emptyList()));
+
+    givenTheTimeIs("2016-03-14T15:30:00Z");
+    givenTheGlobalEnableFlagIs(true);
+    givenWorkflow(customWorkflow);
+    givenWorkflowEnabledStateIs(customWorkflow, true);
+    givenNextNaturalTrigger(customWorkflow, "2016-03-14T12:45:00Z");
+
+    styxStarts();
+    tickTriggerManager();
+    awaitWorkflowInstanceState(
+        WorkflowInstance.create(customWorkflow.id(), "2016-03-14T12:45:00Z"),
+        RunState.State.QUEUED);
+    tickScheduler();
+    awaitNumberOfDockerRuns(1);
+
+    WorkflowInstance workflowInstance = dockerRuns.get(0)._1;
+    assertThat(workflowInstance.workflowId(), is(HOURLY_WORKFLOW.id()));
+    assertThat(workflowInstance.parameter(), is("2016-03-14T12:45:00Z"));
+
+    tickTriggerManager();
+    awaitWorkflowInstanceState(
+        WorkflowInstance.create(customWorkflow.id(), "2016-03-14T15:15:00Z"),
+        RunState.State.QUEUED);
+    tickScheduler();
+    awaitNumberOfDockerRuns(2);
+
+    workflowInstance = dockerRuns.get(1)._1;
+    assertThat(workflowInstance.workflowId(), is(HOURLY_WORKFLOW.id()));
+    assertThat(workflowInstance.parameter(), is("2016-03-14T15:15:00Z"));
+  }
 
   @Test
   public void shouldCatchUpWithNaturalTriggers() throws Exception {

@@ -49,7 +49,7 @@ public class ParameterUtilTest {
   public void shouldFormatDateTime() throws Exception {
     final String dateTime = ParameterUtil.formatDateTime(TIME);
 
-    assertThat(dateTime, is("2016-01-19T09:11:22.333Z"));
+    assertThat(dateTime, is("2016-01-19T09:11:22Z"));
   }
 
   @Test
@@ -57,6 +57,13 @@ public class ParameterUtilTest {
     final String dateHour = ParameterUtil.formatDateHour(TIME);
 
     assertThat(dateHour, is("2016-01-19T09"));
+  }
+
+  @Test
+  public void shouldFormatMonth() throws Exception {
+    final String month = ParameterUtil.formatMonth(TIME);
+
+    assertThat(month, is("2016-01"));
   }
 
   @Test
