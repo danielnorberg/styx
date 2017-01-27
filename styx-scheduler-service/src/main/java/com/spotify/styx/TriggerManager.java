@@ -20,7 +20,6 @@
 
 package com.spotify.styx;
 
-import static com.spotify.styx.util.TimeUtil.lastInstant;
 import static com.spotify.styx.util.TimeUtil.nextInstant;
 import static java.util.Objects.requireNonNull;
 
@@ -32,10 +31,10 @@ import com.spotify.styx.state.Trigger;
 import com.spotify.styx.storage.Storage;
 import com.spotify.styx.util.AlreadyInitializedException;
 import com.spotify.styx.util.Time;
+import com.spotify.styx.util.TriggerInstantSpec;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +50,7 @@ public class TriggerManager {
   private final Time time;
   private final Storage storage;
 
-  public TriggerManager(TriggerListener triggerListener,
-                        Time time,
-                        Storage storage) {
+  public TriggerManager(TriggerListener triggerListener, Time time, Storage storage) {
     this.triggerListener = requireNonNull(triggerListener);
     this.time = requireNonNull(time);
     this.storage = requireNonNull(storage);
@@ -70,7 +67,7 @@ public class TriggerManager {
       return ;
     }
 
-    final Map<Workflow, Optional<Instant>> map;
+    final Map<Workflow, TriggerInstantSpec> map;
     final Set<WorkflowId> enabled;
     try {
       map = storage.workflowsWithNextNaturalTrigger();
@@ -85,18 +82,15 @@ public class TriggerManager {
       final Workflow workflow = entry.getKey();
       final Partitioning partitioning = workflow.schedule().partitioning();
 
-      final Instant next = entry.getValue()
-          .orElseGet( // todo: persist if does not exist
-              () -> lastInstant(lastInstant(now, partitioning), partitioning));
+      final TriggerInstantSpec instantSpec = entry.getValue();
 
-      final Instant nextWithOffset = workflow.schedule().addOffset(next);
-      if (now.isBefore(nextWithOffset)) {
+      if (now.isBefore(instantSpec.offsetInstant())) {
         return;
       }
 
       if (enabled.contains(workflow.id())) {
         try {
-          triggerListener.event(workflow, Trigger.natural(), next);
+          triggerListener.event(workflow, Trigger.natural(), instantSpec.instant());
         } catch (AlreadyInitializedException e) {
           LOG.warn("{}", e.getMessage());
         } catch (Throwable e) {
@@ -105,17 +99,19 @@ public class TriggerManager {
         }
       }
 
-      final Instant nextNaturalTrigger = nextInstant(next, partitioning);
+      final Instant nextTrigger = nextInstant(instantSpec.instant(), partitioning);
+      final Instant nextWithOffset = workflow.schedule().addOffset(nextTrigger);
+      final TriggerInstantSpec nextSpec = TriggerInstantSpec.create(nextTrigger, nextWithOffset);
 
       try {
-        storage.updateNextNaturalTrigger(workflow.id(), nextNaturalTrigger);
-        // todo: store actual trigger time (nextWithOffset)
+        storage.updateNextNaturalTrigger(workflow.id(), nextSpec);
       } catch (IOException e) {
         LOG.error(
             "Sent trigger for workflow {}, but didn't succeed storing next scheduled run {}.",
-            workflow.id(), nextNaturalTrigger);
+            workflow.id(), nextTrigger);
         throw Throwables.propagate(e);
       }
     });
   }
+
 }

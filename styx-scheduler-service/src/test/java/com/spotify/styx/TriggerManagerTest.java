@@ -35,10 +35,10 @@ import com.spotify.styx.state.Trigger;
 import com.spotify.styx.storage.Storage;
 import com.spotify.styx.util.AlreadyInitializedException;
 import com.spotify.styx.util.Time;
+import com.spotify.styx.util.TriggerInstantSpec;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +72,9 @@ public class TriggerManagerTest {
     triggerManager.tick();
 
     verify(triggerListener).event(WORKFLOW_DAILY, NATURAL_TRIGGER, parse("2016-10-01T00:00:00Z"));
-    verify(storage).updateNextNaturalTrigger(WORKFLOW_DAILY.id(), parse("2016-10-02T00:00:00Z"));
+    verify(storage).updateNextNaturalTrigger(
+        WORKFLOW_DAILY.id(),
+        TriggerInstantSpec.create(parse("2016-10-02T00:00:00Z"), parse("2016-10-03T00:00:00Z")));
   }
 
   @Test
@@ -81,7 +83,9 @@ public class TriggerManagerTest {
     triggerManager.tick();
 
     verify(triggerListener, never()).event(any(), any(), any());
-    verify(storage).updateNextNaturalTrigger(WORKFLOW_DAILY.id(), parse("2016-10-10T00:00:00Z"));
+    verify(storage).updateNextNaturalTrigger(
+        WORKFLOW_DAILY.id(),
+        TriggerInstantSpec.create(parse("2016-10-10T00:00:00Z"), parse("2016-10-11T00:00:00Z")));
   }
 
   @Test
@@ -116,25 +120,9 @@ public class TriggerManagerTest {
     doThrow(new AlreadyInitializedException("")).when(triggerListener).event(any(), any(), any());
     triggerManager.tick();
 
-    verify(storage).updateNextNaturalTrigger(WORKFLOW_DAILY.id(), parse("2016-10-02T00:00:00Z"));
-  }
-
-  @Test // todo: don't set up initial trigger in trigger manager
-  public void shouldTriggerExecutionOnEnabledWithoutNextNaturalTrigger() throws IOException {
-    setupWithoutNextNaturalTrigger(true);
-    triggerManager.tick();
-
-    verify(triggerListener).event(WORKFLOW_DAILY, NATURAL_TRIGGER, parse("2016-10-09T00:00:00Z"));
-    verify(storage).updateNextNaturalTrigger(WORKFLOW_DAILY.id(), parse("2016-10-10T00:00:00Z"));
-  }
-
-  @Test // todo: don't set up initial trigger in trigger manager
-  public void shouldNotTriggerExecutionOnDisabledWorkflowWithoutNextNaturalTrigger() throws IOException {
-    setupWithoutNextNaturalTrigger(false);
-    triggerManager.tick();
-
-    verify(triggerListener, never()).event(any(), any(), any());
-    verify(storage).updateNextNaturalTrigger(WORKFLOW_DAILY.id(), parse("2016-10-10T00:00:00Z"));
+    verify(storage).updateNextNaturalTrigger(
+        WORKFLOW_DAILY.id(),
+        TriggerInstantSpec.create(parse("2016-10-02T00:00:00Z"), parse("2016-10-03T00:00:00Z")));
   }
 
   private void setupWithNextNaturalTrigger(boolean enabled, Instant nextNaturalTrigger) throws IOException {
@@ -145,19 +133,10 @@ public class TriggerManagerTest {
       when(storage.enabled()).thenReturn(ImmutableSet.of());
     }
 
-    when(storage.workflowsWithNextNaturalTrigger())
-        .thenReturn(ImmutableMap.of(WORKFLOW_DAILY, Optional.of(nextNaturalTrigger)));
-  }
-
-  private void setupWithoutNextNaturalTrigger(boolean enabled) throws IOException {
-    when(storage.globalEnabled()).thenReturn(true);
-    if (enabled) {
-      when(storage.enabled()).thenReturn(ImmutableSet.of(WORKFLOW_DAILY.id()));
-    } else {
-      when(storage.enabled()).thenReturn(ImmutableSet.of());
-    }
+    Instant offset = WORKFLOW_DAILY.schedule().addOffset(nextNaturalTrigger);
+    TriggerInstantSpec spec = TriggerInstantSpec.create(nextNaturalTrigger, offset);
 
     when(storage.workflowsWithNextNaturalTrigger())
-        .thenReturn(ImmutableMap.of(WORKFLOW_DAILY, Optional.empty()));
+        .thenReturn(ImmutableMap.of(WORKFLOW_DAILY, spec));
   }
 }
