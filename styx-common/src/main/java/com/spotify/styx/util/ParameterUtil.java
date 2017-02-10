@@ -30,16 +30,13 @@ import com.spotify.styx.model.WorkflowInstance;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.List;
 import javaslang.control.Either;
 
@@ -68,29 +65,6 @@ public final class ParameterUtil {
       .appendValue(ChronoField.HOUR_OF_DAY, 2)
       .toFormatter();
 
-  public static String formatDateTime(Instant instant) {
-    return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
-        instant.truncatedTo(ChronoUnit.SECONDS)
-            .atOffset(UTC));
-  }
-
-  public static String formatDate(Instant instant) {
-    return DateTimeFormatter.ISO_LOCAL_DATE.format(
-        instant.atOffset(UTC));
-  }
-
-  public static String formatDateHour(Instant instant) {
-    return ISO_LOCAL_DATE_HOUR.format(
-        instant.truncatedTo(ChronoUnit.HOURS)
-            .atOffset(UTC));
-  }
-
-  public static String formatMonth(Instant instant) {
-    return ISO_LOCAL_MONTH.format(
-        instant.truncatedTo(ChronoUnit.DAYS)
-            .atOffset(UTC));
-  }
-
   public static Instant parseDate(String date) {
     return Instant.from(LocalDate.from(
         DateTimeFormatter.ISO_LOCAL_DATE.parse(date))
@@ -105,71 +79,14 @@ public final class ParameterUtil {
     switch (partitioning.wellKnown()) {
       case DAILY:
       case WEEKLY:
-        return ParameterUtil.formatDate(instant);
+        return formatDate(instant);
       case HOURLY:
-        return ParameterUtil.formatDateHour(instant);
+        return formatDateHour(instant);
       case MONTHLY:
-        return ParameterUtil.formatMonth(instant);
+        return formatMonth(instant);
 
       default:
-        return ParameterUtil.formatDateTime(instant);
-    }
-  }
-
-  /**
-   * Increments an instant for an amount of 1 {@link Partitioning} unit.
-   */
-  public static Instant incrementInstant(Instant instant, Partitioning partitioning) {
-    LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneId.of(UTC.toString()));
-    dateTime = dateTime.plus(1, partitioningToTemporalUnit(partitioning));
-    Instant updatedInstant = dateTime.atZone(ZoneId.of(UTC.toString())).toInstant();
-    return updatedInstant;
-  }
-
-  /**
-   * Converts {@link Partitioning} to {@link ChronoUnit}.
-   */
-  public static TemporalUnit partitioningToTemporalUnit(Partitioning partitioning) {
-    switch (partitioning.wellKnown()) {
-      case HOURLY:
-        return ChronoUnit.HOURS;
-      case DAILY:
-        return ChronoUnit.DAYS;
-      case WEEKLY:
-        return ChronoUnit.WEEKS;
-      case MONTHLY:
-        return ChronoUnit.MONTHS;
-
-      default:
-        throw new IllegalArgumentException("Partitioning not supported: " + partitioning);
-    }
-  }
-
-  /**
-   * Truncates an instant based on partitioning, e.g. '2016-10-10T15:22:111' and partitioning HOURS,
-   * the result would be '2016-10-10T15:00:000'.
-   */
-  public static Instant truncateInstant(Instant instant, Partitioning partitioning) {
-    switch (partitioning.wellKnown()) {
-      case HOURLY:
-        return instant.truncatedTo(ChronoUnit.HOURS);
-
-      case DAILY:
-        return instant.truncatedTo(ChronoUnit.DAYS);
-
-      case WEEKLY:
-        LocalDateTime dateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-        int daysToSubtract = dateTime.getDayOfWeek().getValue();
-        dateTime = dateTime.minusDays(daysToSubtract - 1);
-        Instant resultInstant = dateTime.toInstant(ZoneOffset.UTC);
-        return resultInstant.truncatedTo(ChronoUnit.DAYS);
-
-      case MONTHLY:
-        ZonedDateTime truncatedToMonth = instant.atZone(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).withDayOfMonth(1);
-        return truncatedToMonth.toInstant();
-
-      default:
-        throw new IllegalArgumentException("Partitioning not supported: " + partitioning);
+        return formatDateTime(instant);
     }
   }
 
@@ -192,7 +109,7 @@ public final class ParameterUtil {
     Instant instantToProcess = startInstant;
     while (instantToProcess.isBefore(endInstant)) {
       listOfInstants.add(instantToProcess);
-      instantToProcess = incrementInstant(instantToProcess, partitioning);
+      instantToProcess = TimeUtil.nextInstant(instantToProcess, partitioning);
     }
 
     return listOfInstants;
@@ -235,6 +152,29 @@ public final class ParameterUtil {
       default:
         return Either.left("Partitioning not supported: " + partitioning);
     }
+  }
+
+  static String formatDateTime(Instant instant) {
+    return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
+        instant.truncatedTo(ChronoUnit.SECONDS)
+            .atOffset(UTC));
+  }
+
+  static String formatDate(Instant instant) {
+    return DateTimeFormatter.ISO_LOCAL_DATE.format(
+        instant.atOffset(UTC));
+  }
+
+  static String formatDateHour(Instant instant) {
+    return ISO_LOCAL_DATE_HOUR.format(
+        instant.truncatedTo(ChronoUnit.HOURS)
+            .atOffset(UTC));
+  }
+
+  static String formatMonth(Instant instant) {
+    return ISO_LOCAL_MONTH.format(
+        instant.truncatedTo(ChronoUnit.DAYS)
+            .atOffset(UTC));
   }
 
   private static String parseErrorMessage(Partitioning partitioning, String pattern) {

@@ -18,18 +18,15 @@
  * -/-/-
  */
 
-package com.spotify.styx.workflow;
+package com.spotify.styx.util;
 
-import static com.spotify.styx.util.ParameterUtil.incrementInstant;
 import static com.spotify.styx.util.ParameterUtil.rangeOfInstants;
-import static com.spotify.styx.util.ParameterUtil.truncateInstant;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.spotify.styx.model.Partitioning;
-import com.spotify.styx.util.ParameterUtil;
 import java.time.Instant;
 import java.util.List;
 import org.junit.Test;
@@ -67,49 +64,9 @@ public class ParameterUtilTest {
   }
 
   @Test
-  public void shouldIncrementInstant() throws Exception {
-    final Instant timePlusHour = Instant.parse("2016-01-19T10:11:22.333Z");
-    final Instant timePlusDay = Instant.parse("2016-01-20T09:11:22.333Z");
-    final Instant timePlusWeek = Instant.parse("2016-01-26T09:11:22.333Z");
-    final Instant timePlusMonth = Instant.parse("2016-02-19T09:11:22.333Z");
-
-    final Instant hour = incrementInstant(TIME, Partitioning.HOURS);
-    assertThat(hour, is(timePlusHour));
-
-    final Instant day = incrementInstant(TIME, Partitioning.DAYS);
-    assertThat(day, is(timePlusDay));
-
-    final Instant week = incrementInstant(TIME, Partitioning.WEEKS);
-    assertThat(week, is(timePlusWeek));
-
-    final Instant month = incrementInstant(TIME, Partitioning.MONTHS);
-    assertThat(month, is(timePlusMonth));
-  }
-
-  @Test
-  public void shouldTruncateInstant() throws Exception {
-    final Instant truncatedTimeHours = Instant.parse("2016-01-19T09:00:00.00Z");
-    final Instant truncatedTimeDays = Instant.parse("2016-01-19T00:00:00.00Z");
-    final Instant truncatedTimeWeeks = Instant.parse("2016-01-18T00:00:00.00Z");
-    final Instant truncatedTimeMonths = Instant.parse("2016-01-01T00:00:00.00Z");
-
-    final Instant hour = truncateInstant(TIME, Partitioning.HOURS);
-    assertThat(hour, is(truncatedTimeHours));
-
-    final Instant day = truncateInstant(TIME, Partitioning.DAYS);
-    assertThat(day, is(truncatedTimeDays));
-
-    final Instant weeks = truncateInstant(TIME, Partitioning.WEEKS);
-    assertThat(weeks, is(truncatedTimeWeeks));
-
-    final Instant months = truncateInstant(TIME, Partitioning.MONTHS);
-    assertThat(months, is(truncatedTimeMonths));
-  }
-
-  @Test
   public void shouldRangeOfInstantsHours() throws Exception {
     final Instant startInstant = Instant.parse("2016-12-31T23:00:00.00Z");
-    final Instant endInstant = Instant.parse("2017-01-01T01:00:00.01Z");
+    final Instant endInstant = Instant.parse("2017-01-01T02:00:00.00Z");
 
     List<Instant> list = rangeOfInstants(startInstant, endInstant, Partitioning.HOURS);
     assertThat(list, contains(
@@ -122,7 +79,7 @@ public class ParameterUtilTest {
   @Test
   public void shouldRangeOfInstantsDays() throws Exception {
     final Instant startInstant = Instant.parse("2016-12-31T00:00:00.00Z");
-    final Instant endInstant = Instant.parse("2017-01-02T00:00:00.01Z");
+    final Instant endInstant = Instant.parse("2017-01-03T00:00:00.00Z");
 
     List<Instant> list = rangeOfInstants(startInstant, endInstant, Partitioning.DAYS);
     assertThat(list, contains(
@@ -134,27 +91,27 @@ public class ParameterUtilTest {
 
   @Test
   public void shouldRangeOfInstantsWeeks() throws Exception {
-    final Instant startInstant = Instant.parse("2016-12-30T00:00:00.00Z");
-    final Instant endInstant = Instant.parse("2017-01-13T00:00:00.01Z");
+    final Instant startInstant = Instant.parse("2016-12-26T00:00:00.00Z");
+    final Instant endInstant = Instant.parse("2017-01-16T00:00:00.00Z");
 
     List<Instant> list = rangeOfInstants(startInstant, endInstant, Partitioning.WEEKS);
     assertThat(list, contains(
-        Instant.parse("2016-12-30T00:00:00.00Z"),
-        Instant.parse("2017-01-06T00:00:00.00Z"),
-        Instant.parse("2017-01-13T00:00:00.00Z"))
+        Instant.parse("2016-12-26T00:00:00.00Z"),
+        Instant.parse("2017-01-02T00:00:00.00Z"),
+        Instant.parse("2017-01-09T00:00:00.00Z"))
     );
   }
 
   @Test
   public void shouldRangeOfInstantsMonths() throws Exception {
-    final Instant startInstant = Instant.parse("2017-01-31T00:00:00.00Z");
-    final Instant endInstant = Instant.parse("2017-03-28T00:00:00.01Z");
+    final Instant startInstant = Instant.parse("2017-01-01T00:00:00.00Z");
+    final Instant endInstant = Instant.parse("2017-04-01T00:00:00.00Z");
 
     List<Instant> list = rangeOfInstants(startInstant, endInstant, Partitioning.MONTHS);
     assertThat(list, contains(
-        Instant.parse("2017-01-31T00:00:00.00Z"),
-        Instant.parse("2017-02-28T00:00:00.00Z"),
-        Instant.parse("2017-03-28T00:00:00.00Z"))
+        Instant.parse("2017-01-01T00:00:00.00Z"),
+        Instant.parse("2017-02-01T00:00:00.00Z"),
+        Instant.parse("2017-03-01T00:00:00.00Z"))
     );
   }
 
