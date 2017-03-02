@@ -548,8 +548,75 @@ class DatastoreStorage {
     return Optional.of(entityToBackfill(entity));
   }
 
-  List<Backfill> getBackfills() {
-    final EntityQuery query = Query.entityQueryBuilder().kind(KIND_BACKFILL).build();
+  List<Backfill> getBackfills(boolean showAll) {
+    final EntityQuery.Builder queryBuilder = Query.entityQueryBuilder().kind(KIND_BACKFILL);
+    if (!showAll) {
+      queryBuilder
+          .filter(PropertyFilter.eq(PROPERTY_ALL_TRIGGERED, false))
+          .filter(PropertyFilter.eq(PROPERTY_HALTED, false));
+    }
+    final EntityQuery query = queryBuilder.build();
+    final QueryResults<Entity> results = datastore.run(query);
+    final ImmutableList.Builder<Backfill> resources = ImmutableList.builder();
+    while (results.hasNext()) {
+      resources.add(entityToBackfill(results.next()));
+    }
+    return resources.build();
+  }
+
+  List<Backfill> getBackfillsForComponent(boolean showAll, String component) {
+    final EntityQuery.Builder queryBuilder = Query.entityQueryBuilder().kind(KIND_BACKFILL);
+
+    if (!showAll) {
+      queryBuilder
+          .filter(PropertyFilter.eq(PROPERTY_ALL_TRIGGERED, false))
+          .filter(PropertyFilter.eq(PROPERTY_HALTED, false));
+    }
+
+    final EntityQuery query = queryBuilder
+        .filter(PropertyFilter.eq(PROPERTY_COMPONENT, component))
+        .build();
+    final QueryResults<Entity> results = datastore.run(query);
+    final ImmutableList.Builder<Backfill> resources = ImmutableList.builder();
+    while (results.hasNext()) {
+      resources.add(entityToBackfill(results.next()));
+    }
+    return resources.build();
+  }
+
+  List<Backfill> getBackfillsForWorkflow(boolean showAll, String workflow) {
+    final EntityQuery.Builder queryBuilder = Query.entityQueryBuilder().kind(KIND_BACKFILL);
+
+    if (!showAll) {
+      queryBuilder
+          .filter(PropertyFilter.eq(PROPERTY_ALL_TRIGGERED, false))
+          .filter(PropertyFilter.eq(PROPERTY_HALTED, false));
+    }
+
+    final EntityQuery query = queryBuilder
+        .filter(PropertyFilter.eq(PROPERTY_WORKFLOW, workflow))
+        .build();
+    final QueryResults<Entity> results = datastore.run(query);
+    final ImmutableList.Builder<Backfill> resources = ImmutableList.builder();
+    while (results.hasNext()) {
+      resources.add(entityToBackfill(results.next()));
+    }
+    return resources.build();
+  }
+
+  List<Backfill> getBackfillsForWorkflowId(boolean showAll, WorkflowId workflowId) {
+    final EntityQuery.Builder queryBuilder = Query.entityQueryBuilder().kind(KIND_BACKFILL);
+
+    if (!showAll) {
+      queryBuilder
+          .filter(PropertyFilter.eq(PROPERTY_ALL_TRIGGERED, false))
+          .filter(PropertyFilter.eq(PROPERTY_HALTED, false));
+    }
+
+    final EntityQuery query = queryBuilder
+        .filter(PropertyFilter.eq(PROPERTY_COMPONENT, workflowId.componentId()))
+        .filter(PropertyFilter.eq(PROPERTY_WORKFLOW, workflowId.endpointId()))
+        .build();
     final QueryResults<Entity> results = datastore.run(query);
     final ImmutableList.Builder<Backfill> resources = ImmutableList.builder();
     while (results.hasNext()) {

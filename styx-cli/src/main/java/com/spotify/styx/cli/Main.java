@@ -283,6 +283,10 @@ public final class Main {
   private void backfillList() throws UnsupportedEncodingException {
     String uri = apiUrl("backfills");
     List<String> queries = new ArrayList<>();
+    final boolean showAll = namespace.getBoolean(parser.backfillListShowAll.getDest());
+    if (showAll) {
+      queries.add("showAll=true");
+    }
     final String component = namespace.getString(parser.backfillListComponent.getDest());
     if (component != null) {
       queries.add("component=" + URLEncoder.encode(component, UTF_8));
@@ -482,9 +486,14 @@ public final class Main {
 
     final Subparser backfillList = BackfillCommand.LIST.parser(backfillParser);
     final Argument backfillListWorkflow =
-        backfillList.addArgument("-w", "--workflow").help("only show  backfills for WORKFLOW");
+        backfillList.addArgument("-w", "--workflow").help("only show backfills for WORKFLOW");
     final Argument backfillListComponent =
-        backfillList.addArgument("-c", "--component").help("only show  backfills for COMPONENT");
+        backfillList.addArgument("-c", "--component").help("only show backfills for COMPONENT");
+    final Argument backfillListShowAll =
+        backfillList.addArgument("-a", "--show-all")
+            .setDefault(false)
+            .action(Arguments.storeTrue())
+            .help("show all backfills, even halted and all-triggered ones");
 
     final Subparser backfillCreate = BackfillCommand.CREATE.parser(backfillParser);
     final Argument backfillCreateComponent =
@@ -562,7 +571,7 @@ public final class Main {
   }
 
   private enum BackfillCommand {
-    LIST("ls", "List backfills"),
+    LIST("ls", "List backfills, by default, only active backfills are printed. Use option -a (--show-all) to show all"),
     CREATE("", "Create a backfill"),
     EDIT("e", "Edit a backfill"),
     HALT("h", "Halt a backfill"),
