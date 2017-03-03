@@ -101,6 +101,7 @@ public final class ReplayEvents {
 
   public static Optional<RunState> getBackfillRunState(
       WorkflowInstance workflowInstance,
+      Map<WorkflowInstance, Long> activeWorkflowInstances,
       Storage storage,
       String backfillId) {
     final SettableTime time = new SettableTime();
@@ -119,16 +120,10 @@ public final class ReplayEvents {
     }
 
     RunState restoredState = RunState.fresh(workflowInstance, time);
-    try {
-      Map<WorkflowInstance, Long> instances = storage
-          .readActiveWorkflowInstances(workflowInstance.workflowId().componentId());
-      if (instances.keySet().contains(workflowInstance)) {
-        lastConsumedEvent = instances.get(workflowInstance);
-      } else {
-        lastConsumedEvent = sequenceEvents.last().counter();
-      }
-    } catch (IOException e) {
-      throw Throwables.propagate(e);
+    if (activeWorkflowInstances.keySet().contains(workflowInstance)) {
+      lastConsumedEvent = activeWorkflowInstances.get(workflowInstance);
+    } else {
+      lastConsumedEvent = sequenceEvents.last().counter();
     }
 
     for (SequenceEvent sequenceEvent : sequenceEvents) {
